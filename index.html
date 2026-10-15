@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Пошаговые уроки укладки: локоны утюжком, брашинг, стайлер Dyson.">
+<meta name="description" content="Пошаговые уроки укладки: утюжок, плойка, брашинг, Dyson Airwrap HS08 и HS09.">
 <title>Укладка по шагам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap">
@@ -50,7 +50,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .chips input:checked+label small{color:var(--surface);opacity:.75}
 .chips input:focus-visible+label{outline:2px solid var(--accent);outline-offset:2px}
 
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:5px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:5px}
+@media (max-width:480px){.tabs{grid-template-columns:repeat(2,1fr)}}
 .tab{appearance:none;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:700;font-size:.88rem;padding:10px 6px;border-radius:10px;cursor:pointer;line-height:1.2}
 .tab small{display:block;font-weight:500;font-size:.72rem;color:var(--muted)}
 .tab[aria-selected="true"]{background:var(--accent);color:#fff}
@@ -84,6 +85,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .mist li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:grid;grid-template-columns:auto 1fr;gap:10px}
 .mist li::before{content:"✕";color:var(--accent);font-weight:700}
 .foot{color:var(--muted);font-size:.85rem}
+.note{margin:0;color:var(--muted);font-size:.88rem;max-width:62ch}
 
 /* SVG */
 svg .lbl{font-family:var(--f-body);font-size:11px;font-weight:600;fill:var(--muted)}
@@ -141,12 +143,15 @@ svg .num{font-family:var(--f-display);font-size:12px;font-weight:700;fill:#fff}
 const OPTS={
   type:[["straight","Прямые"],["wavy","Волнистые"],["curly","Кудрявые"]],
   density:[["fine","Тонкие"],["medium","Средние"],["thick","Густые"]],
-  length:[["short","Короткие","до подбородка"],["medium","Средние","до плеч"],["long","Длинные","ниже плеч"]]
+  length:[["short","Короткие","до подбородка"],["medium","Средние","до плеч"],["long","Длинные","до лопаток"],["xlong","Очень длинные","ниже лопаток"]]
 };
 let P={type:"straight",density:"medium",length:"medium"};
 let T="iron";
+let D={model:"hs08",barrel:null};
 try{const s=JSON.parse(localStorage.getItem("ukl-profile")||"null");if(s&&s.type)P=s;}catch(e){}
-const h=(location.hash||"").slice(1);if(["iron","brush","styler"].includes(h))T=h;
+try{const s=JSON.parse(localStorage.getItem("ukl-dyson")||"null");if(s&&s.model)D=s;}catch(e){}
+let h=(location.hash||"").slice(1);if(h==="styler")h="dyson";if(["iron","plojka","brush","dyson"].includes(h))T=h;
+const isLong=p=>p.length==="long"||p.length==="xlong";
 
 /* ---------- SVG-хелперы ---------- */
 let uid=0;
@@ -155,6 +160,15 @@ const L=(x,y,t,a="middle",c="lbl")=>`<text x="${x}" y="${y}" text-anchor="${a}" 
 const head=(x,y,a,c="var(--accent)")=>`<path d="M0 0 L-9 -5 L-9 5 Z" transform="translate(${x} ${y}) rotate(${a})" fill="${c}"/>`;
 const strand=(x,y1,y2,w=16,op=1)=>`<path d="M${x-w/2} ${y1} L${x+w/2} ${y1} L${x+w/2-3} ${y2} Q${x} ${y2+6} ${x-w/2+3} ${y2} Z" fill="var(--hair)" opacity="${op}"/><path d="M${x-2} ${y1+5} L${x-3} ${y2-5} M${x+3} ${y1+5} L${x+2} ${y2-5}" stroke="var(--hair2)" stroke-width="1.3" fill="none" opacity="${op}"/>`;
 function curl(cx,y0,y1,amp,n){let d=`M${cx} ${y0}`;const s=(y1-y0)/n;for(let i=0;i<n;i++){const k=i%2?-1:1,a=y0+i*s,b=a+s;d+=` C${cx+k*amp*1.4} ${a+s*.15}, ${cx+k*amp*1.4} ${b-s*.15}, ${cx} ${b}`;}return d;}
+function barrelG(x,y,w,h,kind,anim,noCoils){
+  const con=kind==="conical";
+  const edge=yy=>{if(!con)return[x,x+w];const t=Math.max(0,Math.min(1,(yy-y)/h)),ww=w*(.5+.5*t),c=x+w/2;return[c-ww/2,c+ww/2];};
+  const shape=con?`<path d="M${x} ${y+h} L${x+w} ${y+h} L${x+w*.75} ${y+5} Q${x+w/2} ${y-3} ${x+w*.25} ${y+5} Z" fill="var(--tool)" opacity=".9"/>`:`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w/2}" fill="var(--tool)" opacity=".9"/>`;
+  const hand=`<rect x="${x+4}" y="${y+h-2}" width="${w-8}" height="30" rx="6" fill="var(--tool)"/>`;
+  let coils="";
+  if(!noCoils)for(let i=0;i<5;i++){const yy=y+16+i*(h-34)/4,[l,r]=edge(yy);coils+=`<path d="M${l} ${yy} Q${(l+r)/2} ${yy+16} ${r} ${yy+6}" ${anim?`pathLength="1" class="draw" style="animation-delay:${-2.4+i*.25}s"`:""} stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/>`;}
+  return shape+hand+coils;
+}
 const HEAD="M160 20 C112 20 96 54 96 84 L94 148 C94 162 226 162 226 148 L224 84 C224 54 208 20 160 20 Z";
 
 const F={
@@ -208,30 +222,38 @@ const F={
   ${L(270,120,"фен сверху,")}${L(270,134,"вдоль пряди")}${L(80,96,"от корня")}${L(80,110,"к концам")}`,"Брашинг: щётка под прядью, фен сверху"),
   angle:(deg="90°")=>svg(`<circle cx="150" cy="126" r="50" fill="var(--hair)" opacity=".55"/><path d="M150 78 L150 18" stroke="var(--hair)" stroke-width="13" stroke-linecap="round"/><circle cx="150" cy="26" r="13" fill="var(--tool)"/><circle cx="150" cy="26" r="17" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="2 3"/><path d="M96 76 L204 76" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M150 62 L164 62 L164 76" stroke="var(--accent)" stroke-width="2" fill="none"/>${L(186,60,deg,"middle","lblA")}${L(250,112,"прядь вверх,")}${L(250,126,"прогреть корни")}${L(150,170,"макушка, вид сбоку")}`,"Подъём пряди у корней"),
   ends:()=>svg(`<path d="M96 12 L96 112 C96 150 140 150 136 118" stroke="var(--hair)" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="120" cy="128" r="12" fill="var(--tool)" opacity=".85"/><path d="M224 12 L224 112 C224 142 256 148 270 126" stroke="var(--hair)" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="252" cy="134" r="12" fill="var(--tool)" opacity=".85"/>${L(110,170,"внутрь","middle","lblA")}${L(246,170,"наружу","middle","lblA")}`,"Кончики внутрь или наружу"),
-  damp:()=>svg(`${strand(110,14,166,26)}${[[100,40],[118,70],[104,104],[120,132]].map((p,i)=>`<path d="M${p[0]} ${p[1]} q-5 8 0 11 q5 -3 0 -11Z" fill="var(--air)" class="puff" style="animation-delay:${i*.4}s"/>`).join("")}<rect x="176" y="78" width="112" height="16" rx="8" fill="none" stroke="var(--line)" stroke-width="2"/><rect x="179" y="81" width="85" height="10" rx="5" fill="var(--accent)"/>${L(232,68,"сухие на ~80%","middle","lblA")}${L(232,116,"влажные,")}${L(232,130,"но не мокрые")}`,"Волосы подсушены до влажного состояния"),
-  barrel:()=>{
-    const coils=[0,1,2,3,4].map(i=>{const y=44+i*20;return `<path d="M145 ${y} Q160 ${y+16} 175 ${y+6}" pathLength="1" class="draw" style="animation-delay:${-2.4+i*.25}s" stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/>`;}).join("");
-    return svg(`<path d="M30 12 C90 14 126 22 146 42" stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/><rect x="145" y="28" width="30" height="120" rx="15" fill="var(--tool)" opacity=".9"/><rect x="149" y="146" width="22" height="32" rx="6" fill="var(--tool)"/>${coils}
+  settings:()=>{
+    const rows=[["нагрев",.62,"var(--heat)"],["поток",.78,"var(--air)"],["время локона",.5,"var(--accent)"]];
+    return svg(`<rect x="94" y="10" width="132" height="160" rx="18" fill="none" stroke="var(--line)" stroke-width="3"/>${rows.map(([t,v,c],i)=>{const y=52+i*40;return `${L(112,y-8,t,"start")}<rect x="112" y="${y}" width="96" height="6" rx="3" fill="var(--line)"/><rect x="112" y="${y}" width="${96*v}" height="6" rx="3" fill="${c}"/><circle cx="${112+96*v}" cy="${y+3}" r="7" fill="${c}"/>`;}).join("")}${L(160,30,"ваш профиль","middle","lblA")}${L(270,90,"подбирается")}${L(270,104,"автоматически")}`,"Настройки стайлера под профиль волос");
+  },
+  ciron:()=>{
+    let coils="";for(let i=0;i<5;i++){const y=44+i*20;coils+=`<path d="M146 ${y} Q160 ${y+16} 174 ${y+6}" pathLength="1" class="draw" style="animation-delay:${-2.4+i*.25}s" stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/>`;}
+    return svg(`<path d="M40 14 C96 16 128 22 147 40" stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/><rect x="148" y="26" width="24" height="122" rx="12" fill="var(--heat)" opacity=".3" stroke="var(--heat)" stroke-width="2"/>${coils}<rect x="176" y="40" width="9" height="104" rx="4" fill="var(--tool)"/><path d="M185 140 L204 152" stroke="var(--tool)" stroke-width="6" stroke-linecap="round"/><rect x="149" y="146" width="22" height="32" rx="6" fill="var(--tool)"/>
+    <path d="M96 40 L96 58" stroke="var(--accent)" stroke-width="2"/>${head(96,64,90)}${L(70,32,"2–3 см до корня","middle","lblA")}${L(240,70,"зажим")}${L(240,84,"держит кончик")}<path d="M206 76 L190 76" stroke="var(--muted)" stroke-width="1.5"/>`,"Прядь накручена на плойку");
+  },
+  damp:(t1="сухие на ~80%",t2="влажные,",t3="но не мокрые")=>svg(`${strand(110,14,166,26)}${[[100,40],[118,70],[104,104],[120,132]].map((p,i)=>`<path d="M${p[0]} ${p[1]} q-5 8 0 11 q5 -3 0 -11Z" fill="var(--air)" class="puff" style="animation-delay:${i*.4}s"/>`).join("")}<rect x="176" y="78" width="112" height="16" rx="8" fill="none" stroke="var(--line)" stroke-width="2"/><rect x="179" y="81" width="85" height="10" rx="5" fill="var(--accent)"/>${L(232,68,t1,"middle","lblA")}${L(232,116,t2)}${L(232,130,t3)}`,"Подготовка волос перед стайлером"),
+  barrel:(kind)=>{
+    return svg(`<path d="M30 12 C90 14 126 22 146 42" stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/>${barrelG(145,28,30,120,kind,true)}
     <path d="M196 40 C226 56 226 100 196 118" stroke="var(--air)" stroke-width="2" fill="none" class="flow"/><path d="M124 120 C96 104 96 64 122 50" stroke="var(--air)" stroke-width="2" fill="none" class="flow"/>
     <path d="M178 22 C188 14 200 14 206 22" stroke="var(--accent)" stroke-width="2.4" fill="none"/>${head(208,25,50)}${L(254,22,"стрелка","middle","lblA")}${L(254,36,"от лица","middle","lblA")}${L(258,98,"воздух сам")}${L(258,112,"оборачивает")}${L(258,126,"прядь")}`,"Прядь оборачивается вокруг цилиндра стайлера");
   },
-  timer:(hot,cold="5 с")=>svg(`<rect x="70" y="20" width="30" height="120" rx="15" fill="var(--tool)" opacity=".9"/><rect x="74" y="138" width="22" height="34" rx="6" fill="var(--tool)"/>${[0,1,2,3,4].map(i=>{const y=36+i*20;return `<path d="M70 ${y} Q85 ${y+16} 100 ${y+6}" stroke="var(--hair)" stroke-width="10" fill="none" stroke-linecap="round"/>`;}).join("")}
-  <circle cx="226" cy="84" r="40" fill="none" stroke="var(--line)" stroke-width="10"/><circle cx="226" cy="84" r="40" fill="none" stroke="var(--heat)" stroke-width="10" pathLength="100" stroke-dasharray="64 36" transform="rotate(-90 226 84)"/><circle cx="226" cy="84" r="40" fill="none" stroke="var(--air)" stroke-width="10" pathLength="100" stroke-dasharray="32 68" stroke-dashoffset="-66" transform="rotate(-90 226 84)"/>
-  <text x="226" y="82" text-anchor="middle" class="lblA">${hot}</text><text x="226" y="97" text-anchor="middle" class="lbl">+ ${cold}</text>
-  <rect x="170" y="148" width="10" height="10" rx="2" fill="var(--heat)"/>${L(186,157,"горячий","start")}<rect x="244" y="148" width="10" height="10" rx="2" fill="var(--air)"/>${L(260,157,"холод","start")}`,"Время горячего и холодного воздуха"),
-  release:()=>svg(`<path d="${curl(160,14,104,18,4)}" stroke="var(--hair)" stroke-width="12" fill="none" stroke-linecap="round"/><g class="drop"><rect x="145" y="96" width="30" height="58" rx="15" fill="var(--tool)" opacity=".9"/><rect x="149" y="152" width="22" height="24" rx="6" fill="var(--tool)"/></g><path d="M232 70 L232 140" stroke="var(--accent)" stroke-width="2.4"/>${head(232,148,90)}${L(262,60,"вниз,","middle","lblA")}${L(262,74,"прядь не тянуть","middle","lblA")}${L(84,60,"локон")}${L(84,74,"остаётся")}`,"Снять цилиндр, опустив стайлер вниз")
+  timer:(hot,cold="5 с",kind)=>svg(`${barrelG(70,20,30,118,kind,false)}
+  <circle cx="226" cy="84" r="40" fill="none" stroke="var(--line)" stroke-width="10"/>${cold?`<circle cx="226" cy="84" r="40" fill="none" stroke="var(--heat)" stroke-width="10" pathLength="100" stroke-dasharray="64 36" transform="rotate(-90 226 84)"/><circle cx="226" cy="84" r="40" fill="none" stroke="var(--air)" stroke-width="10" pathLength="100" stroke-dasharray="32 68" stroke-dashoffset="-66" transform="rotate(-90 226 84)"/>`:`<circle cx="226" cy="84" r="40" fill="none" stroke="var(--heat)" stroke-width="10" pathLength="100" stroke-dasharray="80 20" transform="rotate(-90 226 84)"/>`}
+  <text x="226" y="${cold?82:88}" text-anchor="middle" class="lblA">${hot}</text>${cold?`<text x="226" y="97" text-anchor="middle" class="lbl">+ ${cold}</text>`:""}
+  <rect x="170" y="148" width="10" height="10" rx="2" fill="var(--heat)"/>${L(186,157,cold?"горячий":"держать","start")}${cold?`<rect x="244" y="148" width="10" height="10" rx="2" fill="var(--air)"/>${L(260,157,"холод","start")}`:""}`,"Время прогрева пряди"),
+  release:(kind)=>svg(`<path d="${curl(160,14,104,18,4)}" stroke="var(--hair)" stroke-width="12" fill="none" stroke-linecap="round"/><g class="drop">${barrelG(145,96,30,56,kind,false,true)}</g><path d="M232 70 L232 140" stroke="var(--accent)" stroke-width="2.4"/>${head(232,148,90)}${L(262,60,"вниз,","middle","lblA")}${L(262,74,"прядь не тянуть","middle","lblA")}${L(84,60,"локон")}${L(84,74,"остаётся")}`,"Снять цилиндр, опустив стайлер вниз")
 };
 
 /* ---------- данные уроков ---------- */
 const by=(o,k)=>o[k];
-const lens={short:"короткие",medium:"средние",long:"длинные"};
+const lens={short:"до подбородка",medium:"до плеч",long:"до лопаток",xlong:"ниже лопаток"};
 const TECH={
   iron:{
     tab:"Локоны",sub:"утюжок",title:"Локоны утюжком",
     stats:p=>[
       ["Температура",by({fine:"150–170 °C",medium:"170–190 °C",thick:"190–210 °C"},p.density)],
-      ["Утюжок",p.length==="short"?"узкий, 2–2,5 см":"2,5–3 см"],
-      ["Время",timeStr(p,{short:15,medium:25,long:35})]
+      ["Утюжок",by({short:"узкий, 2–2,5 см",medium:"2,5–3 см",long:"2,5–3 см",xlong:"3–3,5 см"},p.length)],
+      ["Время",timeStr(p,{short:15,medium:25,long:35,xlong:45})]
     ],
     need:p=>["утюжок","термозащита","расчёска-хвостик","3–4 зажима","лак"],
     warn:p=>{
@@ -244,12 +266,12 @@ const TECH={
       {t:"Подготовьте волосы",fig:p=>F.prep(),text:"Волосы должны быть чистыми и полностью сухими: влажные волосы утюжок пережигает. Нанесите термозащиту по всей длине и дайте ей высохнуть.",
         tip:p=>p.density==="fine"?"Берите лёгкий спрей, не крем. Крем утяжелит тонкие волосы, и локон быстро распадётся.":(p.density==="thick"||p.type==="curly")?"Подойдёт термозащитный крем: он заодно уберёт пушение.":null},
       {t:"Разделите на зоны",fig:p=>F.sections(p.length==="short"?2:3),text:"Отделите верхнюю часть и заколите. Затем отделите среднюю. Начинайте с нижней зоны у затылка, так верхние пряди не будут мешать.",
-        tip:p=>p.length==="short"?"На коротких волосах хватит двух зон.":(p.length==="long"&&p.density==="thick")?"На длинных густых волосах удобнее разделить каждую зону ещё на левую и правую половину.":null},
+        tip:zoneTip},
       {t:"Возьмите прядь",fig:p=>F.strand(strandW(p)),text:"Отделите одну прядь и расчешите её. Чем тоньше прядь, тем чётче и стойче получится локон.",
         tip:p=>p.density==="thick"?"Густые волосы берите тонкими прядями 1,5–2 см, иначе середина пряди не прогреется.":p.density==="fine"?"Тонкие волосы плохо держат форму, поэтому не берите пряди шире 3 см.":null},
       {t:"Поверните и ведите вниз",fig:p=>F.iron(),text:"Зажмите прядь утюжком в 5–10 см от корня. Поверните утюжок на пол-оборота от лица и медленно, без остановок, ведите вниз до кончиков. Чем медленнее, тем плотнее завиток.",
         tip:p=>{const t=by({fine:"150–170 °C",medium:"170–190 °C",thick:"190–210 °C"},p.density);
-          return `Ваша температура: <strong>${t}</strong>.`+(p.length==="short"?" Начинайте в 3–4 см от корня, иначе останется залом у корней.":p.length==="long"?" Придерживайте кончик пряди свободной рукой, чтобы он не выскользнул.":"");}},
+          return `Ваша температура: <strong>${t}</strong>.`+(p.length==="short"?" Начинайте в 3–4 см от корня, иначе останется залом у корней.":isLong(p)?" Придерживайте кончик пряди свободной рукой, чтобы он не выскользнул.":"");}},
       {t:"Следите за направлением",fig:p=>F.direction(),text:"Пряди у лица всегда закручивайте от лица: так оно открывается. На затылке можно чередовать направление, тогда локоны не слипнутся в одну волну.",tip:p=>null},
       {t:"Дайте остыть",fig:p=>F.cool("rest","1–2 мин"),text:"Не трогайте и не расчёсывайте локон, пока он не остынет. Форма закрепляется именно в момент остывания.",
         tip:p=>p.density==="fine"?"Скрутите тёплый локон колечком и закрепите зажимом до остывания. На тонких волосах он продержится заметно дольше.":null},
@@ -258,12 +280,39 @@ const TECH={
     ],
     mistakes:["Утюжок остановился на пряди: остаётся залом.","Слишком высокая температура для тонких волос: кончики пересыхают и ломаются.","Расчесали горячие локоны: завиток сразу распался.","Взяли слишком толстую прядь: середина не прогрелась, локон не держится."]
   },
+  plojka:{
+    tab:"Плойка",sub:"с зажимом",title:"Локоны плойкой",
+    stats:p=>[
+      ["Диаметр",ciD(p)],
+      ["Температура",by({fine:"150–170 °C",medium:"170–190 °C",thick:"190–210 °C"},p.density)],
+      ["Время",timeStr(p,{short:15,medium:25,long:35,xlong:45})]
+    ],
+    need:p=>["плойка "+ciD(p),"термозащита","расчёска-хвостик","3–4 зажима","лак"],
+    warn:p=>p.type==="curly"?["Кудрявые волосы плойкой с нуля не завивают. Сначала вытяните их феном с брашингом, или подкручивайте плойкой только отдельные пряди, чтобы выровнять кудри."]:[],
+    steps:[
+      {t:"Подготовьте волосы",fig:p=>F.prep(),text:"Волосы должны быть чистыми и полностью сухими. Нанесите термозащиту по всей длине и дайте ей высохнуть.",
+        tip:p=>p.density==="fine"?"Берите лёгкий спрей, не крем: крем утяжелит тонкие волосы.":null},
+      {t:"Разделите на зоны",fig:p=>F.sections(p.length==="short"?2:3),text:"Отделите и заколите верхние зоны. Начинайте с нижней зоны у затылка.",tip:zoneTip},
+      {t:"Возьмите прядь",fig:p=>F.strand(strandW(p)),text:"Отделите прядь и расчешите её. Тонкая прядь прогревается целиком, и локон держится дольше.",
+        tip:p=>p.density==="thick"?"На густых волосах пряди не толще 1,5–2 см, иначе середина не прогреется.":null},
+      {t:"Накрутите прядь",fig:p=>F.ciron(),text:"Зажмите кончик пряди зажимом так, чтобы он лёг ровно, без залома. Накручивайте плойку к корню и остановитесь в 2–3 см от кожи. Держите плойку вертикально для спиральных локонов или горизонтально для объёма у корней.",
+        tip:p=>`Ваш диаметр: <strong>${ciD(p)}</strong>.`+(p.length==="short"?" На коротких волосах держите плойку горизонтально: так локон охватит всю длину.":isLong(p)?" На длинных волосах накручивайте прядь по спирали вдоль стержня, а не виток на виток, иначе внутренние слои не прогреются.":"")+" Если у плойки нет зажима (конусная), наматывайте прядь от широкой части к узкой и надевайте термоперчатку."},
+      {t:"Подержите",fig:p=>F.timer(ciHold(p),null,"rod"),text:"Держите прядь на плойке несколько секунд. Дольше — не значит лучше: перегрев сушит волосы.",
+        tip:p=>`Для ваших волос: <strong>${ciHold(p)}</strong> при ${by({fine:"150–170 °C",medium:"170–190 °C",thick:"190–210 °C"},p.density)}.`},
+      {t:"Снимите локон",fig:p=>F.release("rod"),text:"Раскройте зажим и выведите плойку вниз, не разматывая локон. Можно поймать горячее колечко в ладонь и закрепить зажимом до остывания.",
+        tip:p=>p.density==="fine"?"На тонких волосах обязательно закрепляйте колечко зажимом: так локон продержится дольше.":null},
+      {t:"Следите за направлением",fig:p=>F.direction(),text:"Пряди у лица закручивайте от лица. На затылке чередуйте направление, чтобы локоны не слиплись в одну волну.",tip:p=>null},
+      {t:"Дайте остыть и разберите",fig:p=>F.finish(),text:"Подождите, пока все локоны остынут, примерно 1–2 минуты. Затем разберите их пальцами и зафиксируйте лаком с расстояния около 30 см.",
+        tip:p=>p.type!=="straight"?"Разбирайте только пальцами, расчёска распушит волосы.":null}
+    ],
+    mistakes:["Кончик зажат с заломом: на конце локона торчит «крючок».","Накрутили до самой кожи: можно обжечь кожу головы.","Держали слишком долго на тонких волосах: сухость и ломкость.","Виток лёг на виток на длинных волосах: середина пряди не прогрелась."]
+  },
   brush:{
     tab:"Брашинг",sub:"фен и щётка",title:"Брашинг: гладкость и объём",
     stats:p=>[
-      ["Щётка",by({short:"Ø 25–35 мм",medium:"Ø 45 мм",long:"Ø 53–65 мм"},p.length)],
+      ["Щётка",brD(p)],
       ["Насадка","концентратор"],
-      ["Время",timeStr(p,{short:15,medium:25,long:35},(p.type==="curly")?10:0)]
+      ["Время",timeStr(p,{short:15,medium:25,long:35,xlong:45},(p.type==="curly")?10:0)]
     ],
     need:p=>["фен","круглая щётка","термозащита",p.density==="fine"?"мусс для объёма":"разглаживающий крем","3–4 зажима"],
     warn:p=>p.type==="curly"?["На кудрявых волосах брашинг работает как выпрямление. Результат продержится до первой влажности или дождя."]:[],
@@ -271,48 +320,82 @@ const TECH={
       {t:"Подготовьте волосы",fig:p=>F.prep(p.density==="fine"?"мусс у корней":"термозащита"),text:"Вымойте голову и промокните волосы полотенцем, не трите. Нанесите термозащиту по длине.",
         tip:p=>p.density==="fine"?"Добавьте мусс для объёма у корней, порцию размером с грецкий орех.":(p.type==="curly"||p.density==="thick")?"Нанесите разглаживающий крем по длине, без него волосы будут пушиться.":null},
       {t:"Подсушите без щётки",fig:p=>F.roughDry(),text:"Сушите феном, поднимая волосы пальцами у корней, пока они не высохнут примерно на 70–80%. Щётка на мокрых волосах только отнимает время и травмирует их.",
-        tip:p=>(p.density==="thick"||p.type==="curly")?"На ваших волосах это самый долгий этап. Ставьте сильный поток и среднюю температуру.":null},
-      {t:"Разделите на зоны",fig:p=>F.sections(p.length==="short"?2:3),text:"Заколите верхние зоны и начинайте с нижней, у затылка.",tip:p=>null},
+        tip:p=>(p.density==="thick"||p.type==="curly"||p.length==="xlong")?"На ваших волосах это самый долгий этап. Ставьте сильный поток и среднюю температуру.":null},
+      {t:"Разделите на зоны",fig:p=>F.sections(p.length==="short"?2:3),text:"Заколите верхние зоны и начинайте с нижней, у затылка.",tip:zoneTip},
       {t:"Ведите щётку и фен вместе",fig:p=>F.brush(),text:"Возьмите прядь не шире щётки. Подведите щётку под прядь у корня и слегка натяните. Насадку держите сверху и направляйте воздух вдоль пряди сверху вниз. Ведите щётку и фен вместе от корня к кончикам.",
-        tip:p=>{const d=by({short:"Ø 25–35 мм",medium:"Ø 45 мм",long:"Ø 53–65 мм"},p.length);
-          let s=`Ваша щётка: <strong>${d}</strong>.`;
+        tip:p=>{let s=`Ваша щётка: <strong>${brD(p)}</strong>.`;
           if(p.type==="curly")s+=" Нужно сильное натяжение и пряди 2–3 см. Проходите каждую прядь 2–3 раза, пока она полностью не высохнет.";
           else if(p.density==="fine")s+=" Хватит 1–2 проходов на средней температуре, не перегревайте.";
+          if(p.length==="xlong")s+=" Длину ниже лопаток проходите в два приёма: сначала верх пряди, потом перехватите щётку ниже.";
           return s;}},
       {t:"Добавьте объём у корней",fig:p=>F.angle(p.density==="thick"?"45–90°":"90°"),text:"На макушке поднимайте прядь вверх, под прямым углом к голове, и прогрейте корни в этом положении.",
-        tip:p=>p.density==="thick"?"Густые волосы и так дают объём. Поднимайте под 45°, если не хотите пышности.":p.length==="short"?"На коротких волосах объём у корней — главная часть укладки.":null},
+        tip:p=>p.density==="thick"?"Густые волосы и так дают объём. Поднимайте под 45°, если не хотите пышности.":p.length==="short"?"На коротких волосах объём у корней — главная часть укладки.":p.length==="xlong"?"Очень длинные волосы своим весом тянут корни вниз. Прогревайте корни дольше и обязательно охлаждайте.":null},
       {t:"Оформите кончики",fig:p=>F.ends(),text:"У кончиков прокрутите щётку внутрь, к лицу, для мягкого завитка, или наружу для лёгкого «флипа». Прогрейте 2–3 секунды.",
-        tip:p=>p.length==="long"?"На длинных волосах можно сделать крупную волну: накрутите кончик на щётку на 1–2 оборота.":null},
+        tip:p=>isLong(p)?"На длинных волосах можно сделать крупную волну: накрутите кончик на щётку на 1–2 оборота.":null},
       {t:"Зафиксируйте холодом",fig:p=>F.cool("air","3–5 с на прядь"),text:"Каждую готовую прядь обдайте холодным воздухом прямо на щётке. Холод закрепляет форму, без него объём опадёт за час.",tip:p=>null}
     ],
     mistakes:["Фен без насадки-концентратора: поток рассеивается, волосы пушатся.","Воздух снизу вверх: чешуйки волоса раскрываются, блеска нет.","Щётка на мокрых волосах: долго и травмирует волосы.","Пропустили холодный воздух: объём быстро опал."]
   },
-  styler:{
-    tab:"Стайлер",sub:"Dyson",title:"Локоны стайлером Dyson",
+  dyson:{
+    tab:"Dyson",sub:"HS08 · HS09",title:"Локоны стайлером Dyson",
     stats:p=>[
-      ["Цилиндр",p.length==="long"?"40 мм":"30 мм"],
-      ["Нагрев + холод",by({fine:"5–8 с",medium:"8–10 с",thick:"10–15 с"},p.density)+" + 5 с"],
-      ["Время",timeStr(p,{short:15,medium:25,long:35})]
+      ["Модель",`${p.M.full} (${p.M.name})`],
+      ["Цилиндр",p.B.name],
+      ["Время",timeStr(p,{short:15,medium:25,long:35,xlong:45})]
     ],
-    need:p=>["стайлер Dyson Airwrap",p.length==="long"?"цилиндры 40 мм":"цилиндры 30 мм",p.type==="curly"?"разглаживающая насадка":"полотенце","мусс или спрей","зажимы"],
-    warn:p=>p.length==="short"?["Стайлер работает примерно от длины до подбородка. На более коротких волосах прядь не обернётся вокруг цилиндра, лучше подойдёт брашинг."]:[],
+    need:p=>[`${p.M.full} (${p.M.name})`,"цилиндр "+p.B.name.toLowerCase(),"насадка для сушки",p.type==="curly"?(p.m==="hs08"?"жёсткая разглаживающая щётка":"щётка с петлями"):"мусс или спрей","зажимы"],
+    warn:p=>{
+      const w=[];
+      if(!p.B.len.includes(p.length))w.push(`Цилиндр «${p.B.name}» обычно берут для другой длины волос. Для ваших лучше подойдёт «${BARRELS[recBarrel(p.m,p)].name}».`);
+      if(p.m==="hs09"&&p.length==="xlong")w.push("Длинных цилиндров для HS09 в комплектах нет. На волосах ниже лопаток берите пряди тоньше и направляйте прядь по цилиндру вниз, чтобы витки не наслаивались.");
+      return w;
+    },
     steps:[
-      {t:"Подсушите до влажного",fig:p=>F.damp(),text:"Вымойте голову и подсушите волосы до влажного состояния, примерно на 80%. Нанесите мусс или спрей для укладки. Стайлер формирует локон, пока волосы досыхают: мокрые не успеют высохнуть, на сухих локон держится хуже.",
-        tip:p=>p.type==="curly"?"Сначала пройдитесь разглаживающей насадкой, чтобы вытянуть кудри. Иначе локоны лягут неровно.":null},
-      {t:"Разделите на зоны",fig:p=>F.sections(p.length==="short"?2:3),text:"Заколите верхние зоны и начинайте с нижней, у затылка.",tip:p=>null},
+      {t:"Высушите волосы",fig:p=>F.damp("сухие на вид","но прохладные","на ощупь"),text:"Вымойте голову и высушите волосы насадкой для сушки. Перед локонами волосы должны выглядеть сухими, но оставаться прохладными на ощупь. Нанесите лёгкий мусс или спрей для укладки.",
+        tip:p=>p.type==="curly"?`Кудрявые волосы прорабатывайте небольшими прядями ${p.m==="hs08"?"жёсткой разглаживающей щёткой":"щёткой с петлями"} сверху вниз, от кончиков к корням, пока они не станут чуть влажными.`:null},
+      {t:"Настройте профиль",fig:p=>F.settings(),text:"В приложении MyDyson ответьте на несколько вопросов о типе и длине волос. Стайлер запомнит профиль и в режиме i.d. curl сам подберёт нагрев, поток и время локона.",
+        tip:p=>p.m==="hs09"?"HS09 сам распознаёт надетую насадку и подставляет её настройки. Подходят только насадки Co-anda2x.":"Без приложения можно работать вручную: нагрев и поток выбираются кнопками на ручке. К HS08 подходят и цилиндры от предыдущих Airwrap."},
+      {t:"Разделите на зоны",fig:p=>F.sections(p.length==="short"?2:3),text:"Заколите верхние зоны и начинайте с нижней, у затылка.",tip:zoneTip},
       {t:"Возьмите прядь",fig:p=>F.strand(p.density==="thick"?"около 2 см":"2–3 см"),text:"Отделите прядь и тщательно расчешите. Спутанная прядь закрутится неровно.",
-        tip:p=>p.density==="thick"?"На густых волосах берите пряди тоньше, иначе воздух не пройдёт насквозь и середина останется влажной.":null},
-      {t:"Поднесите кончик к цилиндру",fig:p=>F.barrel(),text:"Выберите цилиндр, стрелка на котором направлена от лица: для левой и правой стороны направления разные. Держите стайлер вертикально и поднесите кончик пряди к цилиндру. Воздух сам притянет и обернёт прядь.",
-        tip:p=>`Ваш цилиндр: <strong>${p.length==="long"?"40 мм":"30 мм"}</strong>.`+(p.length==="long"?" Направляйте прядь по цилиндру сверху вниз, чтобы витки не наслаивались.":"")},
-      {t:"Прогрейте и охладите",fig:p=>F.timer(by({fine:"5–8 с",medium:"8–10 с",thick:"10–15 с"},p.density)),text:"Держите горячий воздух несколько секунд, затем включите холодный и держите ещё 5 секунд. Холод закрепляет локон.",
-        tip:p=>`Для ваших волос нагрев <strong>${by({fine:"5–8 с",medium:"8–10 с",thick:"10–15 с"},p.density)}</strong>.`},
-      {t:"Снимите цилиндр",fig:p=>F.release(),text:"Плавно опустите стайлер вниз, и локон соскользнёт с цилиндра. Не тяните прядь.",tip:p=>null},
+        tip:p=>p.density==="thick"?"На густых волосах берите пряди тоньше, иначе воздух не пройдёт насквозь.":null},
+      {t:"Поднесите кончик к цилиндру",fig:p=>F.barrel(p.b),text:"Держите стайлер вертикально и поднесите кончик пряди к цилиндру: воздух сам притянет и обернёт прядь. Ведите стайлер к голове, крутить его не нужно. Пряди у лица закручивайте от лица.",
+        tip:p=>`Цилиндр «${p.B.name}»: ${p.B.use}`+(p.b==="conical"?" Узким концом подводите цилиндр ближе к корням.":"")+(p.m==="hs08"?" Направление меняется поворотом прохладного наконечника цилиндра.":" Направление закрутки сверяйте по стрелке на цилиндре.")},
+      {t:"Нагрев и холод",fig:p=>F.timer(dyHold(p),"5 с",p.b),text:"В режиме i.d. curl стайлер сам отсчитает время, обдаст локон холодом и ослабит поток. В ручном режиме держите горячий воздух несколько секунд, затем холодный около 5 секунд.",
+        tip:p=>`Для ручного режима на ваших волосах: нагрев <strong>${dyHold(p)}</strong>, затем холод.`},
+      {t:"Снимите цилиндр",fig:p=>F.release(p.b),text:"Когда поток ослабнет, плавно опустите стайлер вниз, и локон соскользнёт с цилиндра. Не тяните прядь.",tip:p=>null},
       {t:"Разберите и зафиксируйте",fig:p=>F.finish(),text:"Дайте всем локонам остыть. Затем разберите их пальцами и сбрызните лаком.",
         tip:p=>p.type!=="straight"?"Разбирайте только пальцами, расчёска распушит волосы.":null}
     ],
-    mistakes:["Волосы слишком мокрые: локон не высох и распался.","Пропустили холодный воздух: локон не закрепился.","Цилиндр не той стороны: локоны с одной стороны идут к лицу.","Слишком толстая прядь: середина осталась влажной."]
+    mistakes:["Волосы влажные или горячие: локон не закрепляется и быстро распадается.","Насадки от другой модели: у HS08 и HS09 они несовместимы.","Цилиндр короче пряди: витки наслаиваются, середина остаётся влажной.","Сняли локон до холодного обдува: он не закрепился."]
   }
 };
+const MODELS={
+  hs08:{name:"HS08",full:"Airwrap i.d.",barrels:["conical","b40L","b30","b30L","b20"],note:"В комплекте Straight+Wavy: конический цилиндр и длинный 40 мм. Цилиндры 20 и 30 мм от предыдущих Airwrap тоже подходят."},
+  hs09:{name:"HS09",full:"Airwrap Co-anda2x",barrels:["conical","b40","b30"],note:"Подходят только насадки Co-anda2x: цилиндры от HS05 и HS08 не надеваются. Набор цилиндров зависит от комплекта, проверьте свою коробку."}
+};
+const BARRELS={
+  conical:{name:"Конический",use:"сужается к кончику, поэтому локон шире у корня и уже к концам и выглядит естественно. Подходит и для коротких волос.",len:["short","medium","long","xlong"]},
+  b20:{name:"20 мм",use:"тугие упругие локоны. На тонких волосах держатся дольше.",len:["short","medium"]},
+  b30:{name:"30 мм",use:"объёмные локоны среднего размера.",len:["medium","long"]},
+  b30L:{name:"30 мм длинный",use:"объёмные локоны на длинных волосах: прядь ложится в один слой.",len:["long","xlong"]},
+  b40:{name:"40 мм",use:"крупные свободные локоны и волны на средних и длинных волосах.",len:["medium","long","xlong"]},
+  b40L:{name:"40 мм длинный",use:"крупные волны на длинных волосах: прядь ложится в один слой.",len:["long","xlong"]}
+};
+function recBarrel(m,p){
+  if(p.length==="short")return "conical";
+  if(m==="hs08"){if(p.length==="medium")return p.density==="fine"?"b20":"b30";if(p.length==="long")return p.density==="fine"?"b30L":"b40L";return "b40L";}
+  return p.length==="medium"?"b30":"b40";
+}
+function zoneTip(p){
+  if(p.length==="short")return "На коротких волосах хватит двух зон.";
+  if(p.length==="xlong")return "На волосах ниже лопаток удобнее разделить каждую зону ещё на левую и правую половину.";
+  if(p.length==="long"&&p.density==="thick")return "На длинных густых волосах удобнее разделить каждую зону ещё на левую и правую половину.";
+  return null;
+}
+const ciD=p=>by({short:"19–25 мм",medium:"25 мм",long:"25–32 мм",xlong:"32–38 мм"},p.length);
+const ciHold=p=>by({fine:"5–6 с",medium:"8 с",thick:"10–12 с"},p.density);
+const brD=p=>by({short:"Ø 25–35 мм",medium:"Ø 45 мм",long:"Ø 53–65 мм",xlong:"Ø 65 мм и больше"},p.length);
+const dyHold=p=>by({fine:"5–8 с",medium:"8–10 с",thick:"10–15 с"},p.density);
 function timeStr(p,base,extra=0){let m=base[p.length]+extra+(p.density==="thick"?10:0)-(p.density==="fine"?5:0);return `≈ ${m} мин`;}
 function strandW(p){return by({fine:"до 3 см",medium:"2–3 см",thick:"1,5–2 см"},p.density);}
 
@@ -328,15 +411,34 @@ function tabs(){
   el.innerHTML=Object.entries(TECH).map(([k,v])=>`<button class="tab" role="tab" id="tab-${k}" aria-selected="${k===T}">${v.tab}<small>${v.sub}</small></button>`).join("");
   el.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{T=b.id.slice(4);try{history.replaceState(null,"","#"+T);}catch(_){}el.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));render();}));
 }
+function ctx(){
+  const p={...P};
+  if(T==="dyson"){
+    const m=MODELS[D.model]?D.model:"hs08";const M=MODELS[m];
+    const b=(D.barrel&&M.barrels.includes(D.barrel))?D.barrel:recBarrel(m,P);
+    Object.assign(p,{m,M,b,B:BARRELS[b]});
+  }
+  return p;
+}
+function saveD(){try{localStorage.setItem("ukl-dyson",JSON.stringify(D));}catch(_){}}
+function dysonPicker(p){
+  const rec=recBarrel(p.m,p);
+  const models=Object.entries(MODELS).map(([k,v])=>`<input type="radio" name="dy-model" id="dym-${k}" value="${k}" ${p.m===k?"checked":""}><label for="dym-${k}">${v.name}<small>${v.full}</small></label>`).join("");
+  const barrels=p.M.barrels.map(k=>`<input type="radio" name="dy-barrel" id="dyb-${k}" value="${k}" ${p.b===k?"checked":""}><label for="dyb-${k}">${BARRELS[k].name}${k===rec?"<small>для ваших волос</small>":""}</label>`).join("");
+  return `<div class="panel"><div class="group"><span class="eyebrow">Модель</span><div class="chips">${models}</div></div><div class="group"><span class="eyebrow">Цилиндр</span><div class="chips">${barrels}</div></div><p class="note">${p.M.note}</p></div>`;
+}
 function render(){
-  const t=TECH[T];
+  const t=TECH[T],p=ctx();
   const prof=`${OPTS.type.find(o=>o[0]===P.type)[1].toLowerCase()}, ${OPTS.density.find(o=>o[0]===P.density)[1].toLowerCase()}, ${lens[P.length]}`;
-  const warns=t.warn(P).map(w=>`<div class="warn">${w}</div>`).join("");
+  const warns=t.warn(p).map(w=>`<div class="warn">${w}</div>`).join("");
   document.getElementById("lesson").innerHTML=`<div><div class="eyebrow">Для волос: ${prof}</div><h2>${t.title}</h2></div>
-    <div class="stats">${t.stats(P).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+    ${T==="dyson"?dysonPicker(p):""}
+    <div class="stats">${t.stats(p).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("")}</div>
     ${warns}
-    <div class="group"><span class="eyebrow">Понадобится</span><ul class="need">${t.need(P).map(n=>`<li>${n}</li>`).join("")}</ul></div>`;
-  document.getElementById("steps").innerHTML=t.steps.map(s=>{const tip=s.tip(P);return `<li class="step"><div class="fig">${s.fig(P)}</div><div class="body"><h3>${s.t}</h3><p>${s.text}</p>${tip?`<div class="tip"><strong>Для ваших волос.</strong> ${tip}</div>`:""}</div></li>`;}).join("");
+    <div class="group"><span class="eyebrow">Понадобится</span><ul class="need">${t.need(p).map(n=>`<li>${n}</li>`).join("")}</ul></div>`;
+  document.querySelectorAll('input[name="dy-model"]').forEach(i=>i.addEventListener("change",e=>{D={model:e.target.value,barrel:null};saveD();render();}));
+  document.querySelectorAll('input[name="dy-barrel"]').forEach(i=>i.addEventListener("change",e=>{D.barrel=e.target.value;saveD();render();}));
+  document.getElementById("steps").innerHTML=t.steps.map(s=>{const tip=s.tip(p);return `<li class="step"><div class="fig">${s.fig(p)}</div><div class="body"><h3>${s.t}</h3><p>${s.text}</p>${tip?`<div class="tip"><strong>Для ваших волос.</strong> ${tip}</div>`:""}</div></li>`;}).join("");
   document.getElementById("mistakes").innerHTML=t.mistakes.map(m=>`<li>${m}</li>`).join("");
 }
 chips();tabs();render();
